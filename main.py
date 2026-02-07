@@ -137,4 +137,63 @@ class AprovacaoView(discord.ui.View):
         await membro.edit(nick=f"{self.id_cidade} | {membro.name}")
 
         salvar_registro({
-            "usuario"
+            "usuario": str(membro),
+            "id_cidade": self.id_cidade,
+            "status": "Aprovado"
+        })
+
+        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG)
+        if canal_log:
+            await canal_log.send(
+                f"✅ **Registro aprovado**\n"
+                f"👤 {membro.mention}\n"
+                f"🏙️ Cidade: {self.id_cidade}\n"
+                f"🛡️ Por: {interaction.user.mention}"
+            )
+
+        await interaction.message.delete()
+        await interaction.channel.delete()
+
+    @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger)
+    async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        salvar_registro({
+            "usuario": str(self.usuario),
+            "id_cidade": self.id_cidade,
+            "status": "Negado"
+        })
+
+        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG)
+        if canal_log:
+            await canal_log.send(
+                f"❌ **Registro negado**\n"
+                f"👤 {self.usuario.mention}\n"
+                f"🏙️ Cidade: {self.id_cidade}\n"
+                f"🛡️ Por: {interaction.user.mention}"
+            )
+
+        await interaction.message.delete()
+        await interaction.channel.delete()
+
+# ========================
+# COMANDO SLASH
+# ========================
+
+@bot.tree.command(name="registro", description="Abrir registro RP")
+async def registro(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📋 Registro RP",
+        description="Clique abaixo para iniciar.",
+        color=discord.Color.blue()
+    )
+    await interaction.response.send_message(
+        embed=embed,
+        view=RegistroView(),
+        ephemeral=True
+    )
+
+# ========================
+# INICIAR BOT
+# ========================
+
+bot.run(TOKEN)
+
