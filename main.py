@@ -137,4 +137,4 @@ class AprovacaoView(discord.ui.View):
         await membro.edit(nick=f"{self.id_cidade} | {membro.name}")
 
         salvar_registro({
-            "usuario
+            "usuario"
