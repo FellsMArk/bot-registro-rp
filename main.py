@@ -1,51 +1,61 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 import json
 import os
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = "SEU_TOKEN_AQUI"
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
 CARGO_SETS = "Sets"
 
-CANAL_LOG_REGISTRO = "📑-log-registros"
+CANAL_LOG_REG = "📑-log-registros"
 CANAL_LOG_SETS = "📄-log-painel"
+CATEGORIA = "📋 REGISTROS"
 
-CATEGORIA_REGISTRO = "📋 REGISTROS"
+CANAL_PAINEL = 123456789012345678  # ID DO CANAL DO PAINEL
 
-INTENTS = discord.Intents.default()
-INTENTS.members = True
-INTENTS.message_content = True
+ARQUIVO = "registros.json"
 
-bot = commands.Bot(command_prefix="!", intents=INTENTS)
+intents = discord.Intents.default()
+intents.members = True
 
-# ================= READY =================
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-@bot.event
-async def on_ready():
-    await bot.tree.sync()
-    print(f"Online como {bot.user}")
+
+def salvar(dados):
+    if not os.path.exists(ARQUIVO):
+        with open(ARQUIVO, "w") as f:
+            json.dump([], f)
+
+    with open(ARQUIVO, "r") as f:
+        data = json.load(f)
+
+    data.append(dados)
+
+    with open(ARQUIVO, "w") as f:
+        json.dump(data, f, indent=4)
+
 
 # ================= REGISTRO =================
 
-class RegistroModal(discord.ui.Modal, title="Registro RP"):
-    id_cidade = discord.ui.TextInput(label="ID da cidade")
+class RegistroModal(discord.ui.Modal, title="Registro"):
+    cidade = discord.ui.TextInput(label="ID cidade")
 
     async def on_submit(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        staff_role = discord.utils.get(guild.roles, name=CARGO_STAFF)
 
-        categoria = discord.utils.get(guild.categories, name=CATEGORIA_REGISTRO)
+        guild = interaction.guild
+        staff = discord.utils.get(guild.roles, name=CARGO_STAFF)
+
+        categoria = discord.utils.get(guild.categories, name=CATEGORIA)
         if not categoria:
-            categoria = await guild.create_category(CATEGORIA_REGISTRO)
+            categoria = await guild.create_category(CATEGORIA)
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=False),
-            staff_role: discord.PermissionOverwrite(view_channel=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True)
+            staff: discord.PermissionOverwrite(view_channel=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True),
         }
 
         canal = await guild.create_text_channel(
@@ -54,72 +64,79 @@ class RegistroModal(discord.ui.Modal, title="Registro RP"):
             overwrites=overwrites
         )
 
-        embed = discord.Embed(title="Novo Registro", color=discord.Color.orange())
+        embed = discord.Embed(title="Pedido registro")
         embed.add_field(name="Usuário", value=interaction.user.mention)
-        embed.add_field(name="Cidade", value=self.id_cidade.value)
+        embed.add_field(name="Cidade", value=self.cidade.value)
 
-        await canal.send(embed=embed, view=AprovacaoRegistro(interaction.user, self.id_cidade.value))
-        await interaction.response.send_message("Registro enviado.", ephemeral=True)
+        await canal.send(embed=embed, view=AprovacaoRegistro(interaction.user, self.cidade.value))
+        await interaction.response.send_message("Solicitação enviada", ephemeral=True)
 
-class RegistroView(discord.ui.View):
-    @discord.ui.button(label="Iniciar Registro", style=discord.ButtonStyle.green)
-    async def registrar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(RegistroModal())
 
 class AprovacaoRegistro(discord.ui.View):
-    def __init__(self, usuario, cidade):
+    def __init__(self, user, cidade):
         super().__init__(timeout=None)
-        self.usuario = usuario
+        self.user = user
         self.cidade = cidade
 
     async def interaction_check(self, interaction):
         role = discord.utils.get(interaction.guild.roles, name=CARGO_STAFF)
         return role in interaction.user.roles
 
-    @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.success)
-    async def aprovar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        membro = interaction.guild.get_member(self.usuario.id)
+    @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.green)
+    async def aprovar(self, interaction, button):
+
+        membro = interaction.guild.get_member(self.user.id)
         cargo = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
 
-        await membro.add_roles(cargo)
+        if cargo:
+            await membro.add_roles(cargo)
+
         await membro.edit(nick=f"{self.cidade} | {membro.name}")
 
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REGISTRO)
-        if canal_log:
-            await canal_log.send(f"Registro aprovado: {membro.mention}")
+        log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REG)
+        await log.send(
+            f"✅ Registro aprovado\n"
+            f"Usuário: {membro.mention}\n"
+            f"Aprovado por: {interaction.user.mention}"
+        )
 
+        salvar({"user": str(membro), "status": "aprovado"})
+
+        await interaction.message.delete()
         await interaction.channel.delete()
 
-    @discord.ui.button(label="Negar", style=discord.ButtonStyle.danger)
-    async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REGISTRO)
-        if canal_log:
-            await canal_log.send(f"Registro negado: {self.usuario.mention}")
+    @discord.ui.button(label="Negar", style=discord.ButtonStyle.red)
+    async def negar(self, interaction, button):
 
+        log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REG)
+        await log.send(
+            f"❌ Registro negado\n"
+            f"Usuário: {self.user.mention}\n"
+            f"Negado por: {interaction.user.mention}"
+        )
+
+        salvar({"user": str(self.user), "status": "negado"})
+
+        await interaction.message.delete()
         await interaction.channel.delete()
 
-@bot.tree.command(name="registro")
-async def registro(interaction: discord.Interaction):
-    embed = discord.Embed(title="Registro RP")
-    await interaction.response.send_message(embed=embed, view=RegistroView(), ephemeral=True)
 
 # ================= SETS =================
 
-class SetsModal(discord.ui.Modal, title="Solicitação Sets"):
-    user_id = discord.ui.TextInput(label="ID do usuário")
-    motivo = discord.ui.TextInput(label="Motivo", style=discord.TextStyle.paragraph)
+class SetsModal(discord.ui.Modal, title="Solicitação SETS"):
+    uid = discord.ui.TextInput(label="ID")
+    motivo = discord.ui.TextInput(label="Motivo")
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction):
+
         guild = interaction.guild
-        staff_role = discord.utils.get(guild.roles, name=CARGO_STAFF)
-
-        categoria = discord.utils.get(guild.categories, name=CATEGORIA_REGISTRO)
+        staff = discord.utils.get(guild.roles, name=CARGO_STAFF)
+        categoria = discord.utils.get(guild.categories, name=CATEGORIA)
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            interaction.user: discord.PermissionOverwrite(view_channel=False),
-            staff_role: discord.PermissionOverwrite(view_channel=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True)
+            staff: discord.PermissionOverwrite(view_channel=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True),
         }
 
         canal = await guild.create_text_channel(
@@ -128,18 +145,19 @@ class SetsModal(discord.ui.Modal, title="Solicitação Sets"):
             overwrites=overwrites
         )
 
-        embed = discord.Embed(title="Solicitação SETS", color=discord.Color.orange())
+        embed = discord.Embed(title="Pedido SETS")
         embed.add_field(name="Solicitante", value=interaction.user.mention)
-        embed.add_field(name="ID", value=self.user_id.value)
+        embed.add_field(name="ID", value=self.uid.value)
         embed.add_field(name="Motivo", value=self.motivo.value)
 
-        await canal.send(embed=embed, view=AprovacaoSets(interaction.user, self.user_id.value, self.motivo.value))
-        await interaction.response.send_message("Solicitação enviada.", ephemeral=True)
+        await canal.send(embed=embed, view=AprovacaoSets(interaction.user, self.uid.value, self.motivo.value))
+        await interaction.response.send_message("Solicitação enviada", ephemeral=True)
+
 
 class AprovacaoSets(discord.ui.View):
-    def __init__(self, solicitante, uid, motivo):
+    def __init__(self, user, uid, motivo):
         super().__init__(timeout=None)
-        self.solicitante = solicitante
+        self.user = user
         self.uid = uid
         self.motivo = motivo
 
@@ -147,35 +165,73 @@ class AprovacaoSets(discord.ui.View):
         role = discord.utils.get(interaction.guild.roles, name=CARGO_STAFF)
         return role in interaction.user.roles
 
-    @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.success)
-    async def aprovar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
-        if canal_log:
-            await canal_log.send(f"SETS aprovado\nSolicitante: {self.solicitante.mention}\nID: {self.uid}\nMotivo: {self.motivo}")
+    @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.green)
+    async def aprovar(self, interaction, button):
 
+        log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
+        await log.send(
+            f"✅ SETS aprovado\n"
+            f"Solicitante: {self.user.mention}\n"
+            f"ID: {self.uid}\n"
+            f"Motivo: {self.motivo}\n"
+            f"Aprovado por: {interaction.user.mention}"
+        )
+
+        await interaction.message.delete()
         await interaction.channel.delete()
 
-    @discord.ui.button(label="Negar", style=discord.ButtonStyle.danger)
-    async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
-        if canal_log:
-            await canal_log.send(f"SETS negado\nSolicitante: {self.solicitante.mention}\nID: {self.uid}\nMotivo: {self.motivo}")
+    @discord.ui.button(label="Negar", style=discord.ButtonStyle.red)
+    async def negar(self, interaction, button):
 
+        log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
+        await log.send(
+            f"❌ SETS negado\n"
+            f"Solicitante: {self.user.mention}\n"
+            f"ID: {self.uid}\n"
+            f"Motivo: {self.motivo}\n"
+            f"Negado por: {interaction.user.mention}"
+        )
+
+        await interaction.message.delete()
         await interaction.channel.delete()
 
-class SetsView(discord.ui.View):
-    @discord.ui.button(label="Abrir Solicitação", style=discord.ButtonStyle.green)
-    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+# ================= PAINEL =================
+
+class PainelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Registro", style=discord.ButtonStyle.green)
+    async def registro(self, interaction, button):
+        await interaction.response.send_modal(RegistroModal())
+
+    @discord.ui.button(label="Solicitar SETS", style=discord.ButtonStyle.blurple)
+    async def sets(self, interaction, button):
+
+        role = discord.utils.get(interaction.guild.roles, name=CARGO_SETS)
+        if role not in interaction.user.roles:
+            await interaction.response.send_message("Sem permissão", ephemeral=True)
+            return
+
         await interaction.response.send_modal(SetsModal())
 
-@bot.tree.command(name="sets")
-async def sets(interaction: discord.Interaction):
-    role = discord.utils.get(interaction.guild.roles, name=CARGO_SETS)
-    if role not in interaction.user.roles:
-        await interaction.response.send_message("Você não possui permissão.", ephemeral=True)
-        return
 
-    embed = discord.Embed(title="Painel SETS")
-    await interaction.response.send_message(embed=embed, view=SetsView(), ephemeral=True)
+@bot.event
+async def on_ready():
+    await bot.tree.sync()
+
+    canal = bot.get_channel(CANAL_PAINEL)
+
+    embed = discord.Embed(
+        title="Painel do Servidor",
+        description="Use os botões abaixo",
+        color=discord.Color.blue()
+    )
+
+    await canal.send(embed=embed, view=PainelView())
+
+    print("Bot online")
+
 
 bot.run(TOKEN)
