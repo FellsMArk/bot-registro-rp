@@ -10,7 +10,7 @@ import os
 TOKEN = os.getenv("TOKEN")
 
 CARGO_STAFF = "CEO"
-CARGO_REGISTRADO = "CBM-RJ"
+CARGO_REGISTRADO = "CMB-RJ"
 CANAL_LOG = "📑-log-registros"
 CATEGORIA_REGISTRO = "📋 REGISTROS"
 
@@ -93,7 +93,7 @@ class RegistroModal(discord.ui.Modal, title="Registro RP"):
         )
 
         await interaction.response.send_message(
-            "✅ Seu pedido de registro foi enviado para análise.",
+            "✅ Seu pedido foi enviado para a staff.",
             ephemeral=True
         )
 
@@ -120,7 +120,7 @@ class AprovacaoView(discord.ui.View):
         staff_role = discord.utils.get(interaction.guild.roles, name=CARGO_STAFF)
         if staff_role not in interaction.user.roles:
             await interaction.response.send_message(
-                "❌ Apenas a STAFF pode aprovar ou negar.",
+                "❌ Apenas a STAFF pode usar isso.",
                 ephemeral=True
             )
             return False
@@ -128,8 +128,6 @@ class AprovacaoView(discord.ui.View):
 
     @discord.ui.button(label="✅ Aprovar", style=discord.ButtonStyle.success)
     async def aprovar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        mensagem = interaction.message
-
         membro = interaction.guild.get_member(self.usuario.id)
         cargo = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
 
@@ -139,65 +137,4 @@ class AprovacaoView(discord.ui.View):
         await membro.edit(nick=f"{self.id_cidade} | {membro.name}")
 
         salvar_registro({
-            "usuario": str(membro),
-            "id_cidade": self.id_cidade,
-            "status": "Aprovado"
-        })
-
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG)
-        if canal_log:
-            await canal_log.send(
-                f"✅ **Registro aprovado**\n"
-                f"👤 Usuário: {membro.mention}\n"
-                f"🏙️ Cidade: {self.id_cidade}\n"
-                f"🛡️ Aprovado por: {interaction.user.mention}"
-            )
-
-        await mensagem.delete()
-        await interaction.channel.delete()
-
-    @discord.ui.button(label="❌ Negar", style=discord.ButtonStyle.danger)
-    async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        mensagem = interaction.message
-
-        salvar_registro({
-            "usuario": str(self.usuario),
-            "id_cidade": self.id_cidade,
-            "status": "Negado"
-        })
-
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG)
-        if canal_log:
-            await canal_log.send(
-                f"❌ **Registro negado**\n"
-                f"👤 Usuário: {self.usuario.mention}\n"
-                f"🏙️ Cidade: {self.id_cidade}\n"
-                f"🛡️ Negado por: {interaction.user.mention}"
-            )
-
-        await mensagem.delete()
-        await interaction.channel.delete()
-
-# ========================
-# COMANDO SLASH (SEM MENSAGEM NO CANAL)
-# ========================
-
-@bot.tree.command(name="registro", description="Abrir painel de registro RP")
-async def registro(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="📋 Registro RP",
-        description="Clique no botão abaixo para iniciar seu registro.",
-        color=discord.Color.blue()
-    )
-
-    await interaction.response.send_message(
-        embed=embed,
-        view=RegistroView(),
-        ephemeral=True
-    )
-
-# ========================
-# INICIAR BOT
-# ========================
-
-bot.run(TOKEN)
+            "usuario
