@@ -8,7 +8,7 @@ TOKEN = os.getenv("TOKEN_BOT")
 
 # Configurações de Cargos e Canais
 CARGO_STAFF = "CEO"
-CARGO_REGISTRADO = "CMB-RJ"
+CARGO_REGISTRADO = "CBM-RJ"
 CARGO_SETS = "Sets"
 
 CANAL_LOG_REGISTRO = "📑-log-registros"
