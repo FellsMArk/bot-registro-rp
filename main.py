@@ -6,7 +6,7 @@ from datetime import datetime
 # TOKEN DO RAILWAY
 TOKEN = os.getenv("TOKEN_BOT") or "MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o"
 
-# NOMES DOS CARGOS (Devem ser iguais aos do Discord)
+# NOMES DOS CARGOS
 CARGO_CEO = "CEO"
 CARGO_CBM = "CBM-RJ"
 CARGO_SETS = "Sets"
@@ -23,44 +23,46 @@ class FireBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents, help_command=None)
 
     async def setup_hook(self):
-        # Registra as views para que os botões não morram ao reiniciar
         self.add_view(ArquivoView())
         self.add_view(RegistroView())
         self.add_view(SetsView())
 
     async def on_ready(self):
         print(f"\n" + "="*30)
-        print(f"✅ BOT ESTÁ ON: {self.user.name}")
-        print(f"🚀 LOGS DE SETS E NEGAR REGISTRO: ATIVADAS")
+        print(f"✅ BOT ATUALIZADO: {self.user.name}")
+        print(f"🚀 SISTEMA DE ORIENTAÇÃO PRONTO")
         print("="*30 + "\n")
 
 bot = FireBot()
 
-# ================= 📂 SISTEMA DE ARQUIVO =================
-class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
+# ================= 📂 SISTEMA DE ORIENTAÇÃO (ANTIGO ARQUIVO) =================
+class OrientacaoModal(discord.ui.Modal, title="Registrar Orientação"):
     id_ref = discord.ui.TextInput(label="ID")
     nome = discord.ui.TextInput(label="NOME/CARGO")
-    aviso = discord.ui.TextInput(label="OCORRÊNCIA/AVISO", style=discord.TextStyle.paragraph)
+    aviso = discord.ui.TextInput(label="DESCRIÇÃO DA ORIENTAÇÃO", style=discord.TextStyle.paragraph)
     obs = discord.ui.TextInput(label="OBSERVAÇÃO (Opcional)", required=False)
     prv = discord.ui.TextInput(label="PROVAS (Opcional)", required=False)
 
     async def on_submit(self, it: discord.Interaction):
         canal = discord.utils.get(it.guild.text_channels, name=LOG_ARQUIVO)
-        emb = discord.Embed(title="🚨 NOVO ARQUIVO CBM-RJ", color=0x992d22, timestamp=datetime.now())
+        emb = discord.Embed(title="🚨 NOVA ORIENTAÇÃO CBM-RJ", color=0xe67e22, timestamp=datetime.now()) # Cor laranja para orientação
         emb.add_field(name="🆔 ID", value=self.id_ref.value, inline=True)
         emb.add_field(name="👤 Nome", value=self.nome.value, inline=True)
         emb.add_field(name="📝 Descrição", value=f"```{self.aviso.value}```", inline=False)
         if self.obs.value: emb.add_field(name="🔍 Obs", value=self.obs.value)
         if self.prv.value: emb.add_field(name="📸 Provas", value=self.prv.value)
+        emb.set_footer(text=f"Orientador: {it.user.display_name}")
+        
         if canal: await canal.send(embed=emb)
-        await it.response.send_message("✅ Enviado com sucesso!", ephemeral=True)
+        await it.response.send_message("✅ Orientação registrada com sucesso!", ephemeral=True)
 
 class ArquivoView(discord.ui.View):
     def __init__(self): super().__init__(timeout=None)
-    @discord.ui.button(label="Registrar Arquivo", style=discord.ButtonStyle.danger, custom_id="v8_arq", emoji="📂")
+    # ALTERAÇÃO AQUI: Texto do botão mudado para "Registrar Orientação"
+    @discord.ui.button(label="Registrar Orientação", style=discord.ButtonStyle.danger, custom_id="v9_orient", emoji="📂")
     async def cb(self, it: discord.Interaction, bt):
-        if discord.utils.get(it.user.roles, name=CARGO_CBM): await it.response.send_modal(ArquivoModal())
-        else: await it.response.send_message("❌ Apenas CBM-RJ.", ephemeral=True)
+        if discord.utils.get(it.user.roles, name=CARGO_CBM): await it.response.send_modal(OrientacaoModal())
+        else: await it.response.send_message("❌ Apenas membros da CBM-RJ.", ephemeral=True)
 
 # ================= 📝 SISTEMA DE REGISTRO (APROVAR/NEGAR) =================
 class AprovReg(discord.ui.View):
@@ -89,7 +91,7 @@ class AprovReg(discord.ui.View):
 
 class RegistroView(discord.ui.View):
     def __init__(self): super().__init__(timeout=None)
-    @discord.ui.button(label="Iniciar Registro", style=discord.ButtonStyle.success, custom_id="v8_reg", emoji="📝")
+    @discord.ui.button(label="Iniciar Registro", style=discord.ButtonStyle.success, custom_id="v9_reg", emoji="📝")
     async def cb(self, it: discord.Interaction, bt):
         modal = discord.ui.Modal(title="Registro")
         id_in = discord.ui.TextInput(label="Informe seu ID")
@@ -135,7 +137,7 @@ class AprovSet(discord.ui.View):
 
 class SetsView(discord.ui.View):
     def __init__(self): super().__init__(timeout=None)
-    @discord.ui.button(label="Solicitar Set", style=discord.ButtonStyle.primary, custom_id="v8_set", emoji="💎")
+    @discord.ui.button(label="Solicitar Set", style=discord.ButtonStyle.primary, custom_id="v9_set", emoji="💎")
     async def cb(self, it: discord.Interaction, bt):
         if not discord.utils.get(it.user.roles, name=CARGO_SETS): return await it.response.send_message("❌ Apenas cargo Sets.", ephemeral=True)
         modal = discord.ui.Modal(title="Solicitação de Sets")
@@ -151,7 +153,8 @@ class SetsView(discord.ui.View):
 # ================= COMANDOS =================
 @bot.command()
 async def setup(ctx):
-    await ctx.send(embed=discord.Embed(title="📂 CENTRAL ARQUIVO", color=0x992d22), view=ArquivoView())
+    # ALTERAÇÃO NO TÍTULO DO PAINEL PARA "CENTRAL DE ORIENTAÇÕES"
+    await ctx.send(embed=discord.Embed(title="📂 CENTRAL DE ORIENTAÇÕES", description="Clique abaixo para registrar uma orientação oficial.", color=0x992d22), view=ArquivoView())
     await ctx.send(embed=discord.Embed(title="📝 REGISTRO CBM", color=0x2ecc71), view=RegistroView())
     await ctx.send(embed=discord.Embed(title="💎 PAINEL SETS", color=0x3498db), view=SetsView())
 
