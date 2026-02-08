@@ -100,4 +100,4 @@ async def painel_sets(ctx):
     embed = discord.Embed(title="Painel SETS")
     await ctx.send(embed=embed, view=SetsView())
 
-bot.run(TOKEN)
+bot.run("TOKEN")
