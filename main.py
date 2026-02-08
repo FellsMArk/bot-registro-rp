@@ -3,7 +3,7 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-TOKEN = os.getenv(TOKEN)
+TOKEN = os.getenv("TOKEN")
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
