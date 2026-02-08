@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U")
 
 intents = discord.Intents.default()
 intents.members = True
@@ -153,4 +153,4 @@ async def painel(interaction: discord.Interaction):
     await interaction.response.send_message("Painel criado.", ephemeral=True)
 
 
-bot.run(TOKEN)
+bot.run(MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U)
