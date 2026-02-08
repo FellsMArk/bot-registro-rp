@@ -3,7 +3,7 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv(TOKEN)
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
@@ -100,4 +100,4 @@ async def painel_sets(ctx):
     embed = discord.Embed(title="Painel SETS")
     await ctx.send(embed=embed, view=SetsView())
 
-bot.run("TOKEN")
+bot.run(TOKEN)
