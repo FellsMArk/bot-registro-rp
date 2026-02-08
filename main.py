@@ -5,15 +5,10 @@ from discord import app_commands
 
 # ================= VARIÁVEIS DE AMBIENTE =================
 TOKEN = os.getenv("TOKEN")
-LOG_CHANNEL_ID = os.getenv("1469298791483179130")
+LOG_CHANNEL_ID = int(1469298791483179130)
 
 if not TOKEN:
     raise RuntimeError("DISCORD_TOKEN não encontrado nas variáveis de ambiente")
-
-if not LOG_CHANNEL_ID:
-    raise RuntimeError("LOG_CHANNEL_ID não encontrado nas variáveis de ambiente")
-
-LOG_CHANNEL_ID = int(1469298791483179130)
 
 # ================= CONFIGURAÇÕES =================
 CEO_ROLE = "CEO"
