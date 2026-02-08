@@ -68,4 +68,53 @@ class ArquivoView(discord.ui.View):
 
     @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="arquivo_btn")
     async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction
+        # CORREÇÃO DA LINHA 71 AQUI:
+        role = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
+
+        if role not in interaction.user.roles:
+            await interaction.response.send_message("Você não possui permissão.", ephemeral=True)
+            return
+
+        await interaction.response.send_modal(ArquivoModal())
+
+
+@bot.command()
+async def arquivo(ctx):
+    embed = discord.Embed(title="Sistema de Arquivos")
+    await ctx.send(embed=embed, view=ArquivoView())
+
+# ================= PAINEIS =================
+
+class RegistroView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+class SetsView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+@bot.command()
+async def painel_registro(ctx):
+    embed = discord.Embed(title="Painel de Registro")
+    await ctx.send(embed=embed, view=RegistroView())
+
+@bot.command()
+async def painel_sets(ctx):
+    embed = discord.Embed(title="Painel SETS")
+    await ctx.send(embed=embed, view=SetsView())
+
+# ================= EXECUÇÃO COM DIAGNÓSTICO =================
+
+if __name__ == "__main__":
+    if TOKEN:
+        print("--- DIAGNÓSTICO DO RAILWAY ---")
+        print(f"Tamanho do token lido: {len(TOKEN)} caracteres")
+        print(f"Início do token: {TOKEN[:6]}...") 
+        print("------------------------------")
+        
+        try:
+            bot.run(TOKEN)
+        except discord.errors.LoginFailure:
+            print("❌ O Discord recusou o login. Verifique se o token no Railway bate com o Início acima.")
+    else:
+        print("❌ ERRO: A variável 'TOKEN' está vazia no Railway!")
