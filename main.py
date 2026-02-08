@@ -13,7 +13,7 @@ if not TOKEN:
 if not LOG_CHANNEL_ID:
     raise RuntimeError("LOG_CHANNEL_ID não encontrado nas variáveis de ambiente")
 
-LOG_CHANNEL_ID = int(LOG_CHANNEL_ID)
+LOG_CHANNEL_ID = int(1469298791483179130)
 
 # ================= CONFIGURAÇÕES =================
 CEO_ROLE = "CEO"
