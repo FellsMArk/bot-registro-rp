@@ -4,7 +4,7 @@ from discord import app_commands
 import os
 from datetime import datetime
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
@@ -197,4 +197,4 @@ async def sets(interaction: discord.Interaction):
     embed = discord.Embed(title="Painel SETS")
     await interaction.response.send_message(embed=embed, view=SetsView(), ephemeral=True)
 
-bot.run(TOKEN)
+bot.run("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
