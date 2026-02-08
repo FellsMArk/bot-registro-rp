@@ -3,6 +3,7 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
+# Aqui ele pega a variável do Railway
 TOKEN = os.getenv("TOKEN")
 
 CARGO_STAFF = "CEO"
@@ -24,6 +25,8 @@ bot = commands.Bot(command_prefix="!", intents=INTENTS)
 # ================= READY =================
 @bot.event
 async def on_ready():
+    # Nota: Certifique-se de que RegistroView e SetsView estejam definidos 
+    # (no código enviado eles estão vazios, mas o bot vai rodar)
     bot.add_view(RegistroView())
     bot.add_view(SetsView())
     bot.add_view(ArquivoView())
@@ -100,4 +103,10 @@ async def painel_sets(ctx):
     embed = discord.Embed(title="Painel SETS")
     await ctx.send(embed=embed, view=SetsView())
 
-bot.run("TOKEN")
+# ================= EXECUÇÃO =================
+
+# A ALTERAÇÃO ESTÁ AQUI:
+if TOKEN:
+    bot.run(TOKEN) # Sem aspas, para usar a variável definida lá no topo
+else:
+    print("ERRO: A variável TOKEN não foi encontrada no ambiente do Railway!")
