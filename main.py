@@ -3,8 +3,8 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-# PEGA O TOKEN E LIMPA ESPAÇOS/QUEBRAS DE LINHA AUTOMATICAMENTE
-TOKEN_RAW = os.getenv("TOKEN_BOT")
+# Busca primeiro pela nova variável para ignorar caches antigos
+TOKEN_RAW = os.getenv("TOKEN_BOT") or os.getenv("TOKEN")
 TOKEN = TOKEN_RAW.strip() if TOKEN_RAW else None
 
 CARGO_STAFF = "CEO"
@@ -26,15 +26,16 @@ bot = commands.Bot(command_prefix="!", intents=INTENTS)
 # ================= READY =================
 @bot.event
 async def on_ready():
+    # Garante que as views persistentes funcionem após reiniciar
     bot.add_view(RegistroView())
     bot.add_view(SetsView())
     bot.add_view(ArquivoView())
-    print(f"✅ Bot Online como {bot.user}")
+    print(f"✅ Sucesso! Bot logado como: {bot.user}")
 
 # ================= SISTEMA ARQUIVO =================
 
 class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
-    id = discord.ui.TextInput(label="ID")
+    id_ref = discord.ui.TextInput(label="ID")
     nome = discord.ui.TextInput(label="Nome")
     cargo = discord.ui.TextInput(label="Cargo")
     ocorrencia = discord.ui.TextInput(label="Ocorrência")
@@ -48,7 +49,7 @@ class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
         if canal_log:
             embed = discord.Embed(title="Novo Aviso Registrado", color=discord.Color.blue())
             embed.add_field(name="Staff", value=interaction.user.mention)
-            embed.add_field(name="ID", value=self.id.value)
+            embed.add_field(name="ID", value=self.id_ref.value)
             embed.add_field(name="Nome", value=self.nome.value)
             embed.add_field(name="Cargo", value=self.cargo.value)
             embed.add_field(name="Ocorrência", value=self.ocorrencia.value)
@@ -59,7 +60,7 @@ class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
 
             await canal_log.send(embed=embed)
 
-        await interaction.response.send_message("Arquivo enviado.", ephemeral=True)
+        await interaction.response.send_message("Arquivo enviado com sucesso.", ephemeral=True)
 
 
 class ArquivoView(discord.ui.View):
@@ -68,11 +69,10 @@ class ArquivoView(discord.ui.View):
 
     @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="arquivo_btn")
     async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # CORREÇÃO DA LINHA 71 AQUI:
         role = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
 
-        if role not in interaction.user.roles:
-            await interaction.response.send_message("Você não possui permissão.", ephemeral=True)
+        if role and role not in interaction.user.roles:
+            await interaction.response.send_message("Você não possui o cargo necessário.", ephemeral=True)
             return
 
         await interaction.response.send_modal(ArquivoModal())
@@ -80,10 +80,10 @@ class ArquivoView(discord.ui.View):
 
 @bot.command()
 async def arquivo(ctx):
-    embed = discord.Embed(title="Sistema de Arquivos")
+    embed = discord.Embed(title="Sistema de Arquivos", description="Clique no botão abaixo para registrar um aviso.")
     await ctx.send(embed=embed, view=ArquivoView())
 
-# ================= PAINEIS =================
+# ================= PAINEIS (VIEWS VAZIAS PARA REGISTRO) =================
 
 class RegistroView(discord.ui.View):
     def __init__(self):
@@ -103,18 +103,16 @@ async def painel_sets(ctx):
     embed = discord.Embed(title="Painel SETS")
     await ctx.send(embed=embed, view=SetsView())
 
-# ================= EXECUÇÃO COM DIAGNÓSTICO =================
+# ================= EXECUÇÃO COM DIAGNÓSTICO FINAL =================
 
 if __name__ == "__main__":
     if TOKEN:
-        print("--- DIAGNÓSTICO DO RAILWAY ---")
-        print(f"Tamanho do token lido: {len(TOKEN)} caracteres")
-        print(f"Início do token: {TOKEN[:6]}...") 
-        print("------------------------------")
+        print("--- DIAGNÓSTICO DE INICIALIZAÇÃO ---")
+        print(f"Token utilizado: {TOKEN[:6]}...{TOKEN[-4:]}")
+        print(f"Total de caracteres: {len(TOKEN)}")
+        print("------------------------------------")
         
         try:
-            bot.run(TOKEN_BOT)
+            bot.run(TOKEN)
         except discord.errors.LoginFailure:
-            print("❌ O Discord recusou o login. Verifique se o token no Railway bate com o Início acima.")
-    else:
-        print("❌ ERRO: A variável 'TOKEN' está vazia no Railway!")
+            print("❌ ERRO FATAL: O Discord rejeitou este
