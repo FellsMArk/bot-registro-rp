@@ -3,7 +3,7 @@ from discord.ext import commands
 import json
 import os
 
-TOKEN = "MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U"
+TOKEN = "SEU_TOKEN_AQUI"
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
@@ -13,8 +13,6 @@ CANAL_LOG_REG = "📑-log-registros"
 CANAL_LOG_SETS = "📄-log-painel"
 CATEGORIA = "📋 REGISTROS"
 
-CANAL_PAINEL = 123456789012345678  # ID DO CANAL DO PAINEL
-
 ARQUIVO = "registros.json"
 
 intents = discord.Intents.default()
@@ -22,6 +20,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+
+# ================= UTIL =================
 
 def salvar(dados):
     if not os.path.exists(ARQUIVO):
@@ -35,6 +35,12 @@ def salvar(dados):
 
     with open(ARQUIVO, "w") as f:
         json.dump(data, f, indent=4)
+
+
+@bot.event
+async def on_ready():
+    await bot.tree.sync()
+    print("Bot online")
 
 
 # ================= REGISTRO =================
@@ -69,6 +75,7 @@ class RegistroModal(discord.ui.Modal, title="Registro"):
         embed.add_field(name="Cidade", value=self.cidade.value)
 
         await canal.send(embed=embed, view=AprovacaoRegistro(interaction.user, self.cidade.value))
+
         await interaction.response.send_message("Solicitação enviada", ephemeral=True)
 
 
@@ -121,6 +128,11 @@ class AprovacaoRegistro(discord.ui.View):
         await interaction.channel.delete()
 
 
+@bot.tree.command(name="registro")
+async def registro(interaction: discord.Interaction):
+    await interaction.response.send_modal(RegistroModal())
+
+
 # ================= SETS =================
 
 class SetsModal(discord.ui.Modal, title="Solicitação SETS"):
@@ -131,6 +143,7 @@ class SetsModal(discord.ui.Modal, title="Solicitação SETS"):
 
         guild = interaction.guild
         staff = discord.utils.get(guild.roles, name=CARGO_STAFF)
+
         categoria = discord.utils.get(guild.categories, name=CATEGORIA)
 
         overwrites = {
@@ -151,6 +164,7 @@ class SetsModal(discord.ui.Modal, title="Solicitação SETS"):
         embed.add_field(name="Motivo", value=self.motivo.value)
 
         await canal.send(embed=embed, view=AprovacaoSets(interaction.user, self.uid.value, self.motivo.value))
+
         await interaction.response.send_message("Solicitação enviada", ephemeral=True)
 
 
@@ -196,42 +210,15 @@ class AprovacaoSets(discord.ui.View):
         await interaction.channel.delete()
 
 
-# ================= PAINEL =================
+@bot.tree.command(name="sets")
+async def sets(interaction: discord.Interaction):
 
-class PainelView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
+    role = discord.utils.get(interaction.guild.roles, name=CARGO_SETS)
+    if role not in interaction.user.roles:
+        await interaction.response.send_message("Sem permissão", ephemeral=True)
+        return
 
-    @discord.ui.button(label="Registro", style=discord.ButtonStyle.green)
-    async def registro(self, interaction, button):
-        await interaction.response.send_modal(RegistroModal())
-
-    @discord.ui.button(label="Solicitar SETS", style=discord.ButtonStyle.blurple)
-    async def sets(self, interaction, button):
-
-        role = discord.utils.get(interaction.guild.roles, name=CARGO_SETS)
-        if role not in interaction.user.roles:
-            await interaction.response.send_message("Sem permissão", ephemeral=True)
-            return
-
-        await interaction.response.send_modal(SetsModal())
+    await interaction.response.send_modal(SetsModal())
 
 
-@bot.event
-async def on_ready():
-    await bot.tree.sync()
-
-    canal = bot.get_channel(CANAL_PAINEL)
-
-    embed = discord.Embed(
-        title="Painel do Servidor",
-        description="Use os botões abaixo",
-        color=discord.Color.blue()
-    )
-
-    await canal.send(embed=embed, view=PainelView())
-
-    print("Bot online")
-
-
-bot.run("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U")
+bot.run(TOKEN)
