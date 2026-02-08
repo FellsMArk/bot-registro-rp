@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-TOKEN = os.getenv("token")
+TOKEN = os.getenv(token)
  
 intents = discord.Intents.default()
 intents.members = True
