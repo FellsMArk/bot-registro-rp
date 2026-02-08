@@ -3,8 +3,9 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-# Aqui ele pega a variável do Railway
-TOKEN = os.getenv("TOKEN")
+# PEGA O TOKEN E LIMPA ESPAÇOS/QUEBRAS DE LINHA AUTOMATICAMENTE
+TOKEN_RAW = os.getenv("TOKEN")
+TOKEN = TOKEN_RAW.strip() if TOKEN_RAW else None
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
@@ -25,12 +26,10 @@ bot = commands.Bot(command_prefix="!", intents=INTENTS)
 # ================= READY =================
 @bot.event
 async def on_ready():
-    # Nota: Certifique-se de que RegistroView e SetsView estejam definidos 
-    # (no código enviado eles estão vazios, mas o bot vai rodar)
     bot.add_view(RegistroView())
     bot.add_view(SetsView())
     bot.add_view(ArquivoView())
-    print(f"Online como {bot.user}")
+    print(f"✅ Bot Online como {bot.user}")
 
 # ================= SISTEMA ARQUIVO =================
 
@@ -105,8 +104,11 @@ async def painel_sets(ctx):
 
 # ================= EXECUÇÃO =================
 
-# A ALTERAÇÃO ESTÁ AQUI:
-if TOKEN:
-    bot.run(TOKEN) # Sem aspas, para usar a variável definida lá no topo
-else:
-    print("ERRO: A variável TOKEN não foi encontrada no ambiente do Railway!")
+if __name__ == "__main__":
+    if TOKEN:
+        try:
+            bot.run(TOKEN)
+        except discord.errors.LoginFailure:
+            print("❌ ERRO: Token Inválido! Vá ao Discord Developer Portal e dê 'Reset Token'.")
+    else:
+        print("❌ ERRO: A variável 'TOKEN' não foi configurada no Railway!")
