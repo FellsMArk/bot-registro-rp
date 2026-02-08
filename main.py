@@ -3,8 +3,8 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-# Busca primeiro pela nova variável para ignorar caches antigos
-TOKEN_RAW = os.getenv("TOKEN_BOT") or os.getenv("TOKEN")
+# BUSCA PELA NOVA VARIÁVEL QUE VOCÊ CRIOU NA IMAGEM
+TOKEN_RAW = os.getenv("TOKEN_BOT")
 TOKEN = TOKEN_RAW.strip() if TOKEN_RAW else None
 
 CARGO_STAFF = "CEO"
@@ -26,11 +26,10 @@ bot = commands.Bot(command_prefix="!", intents=INTENTS)
 # ================= READY =================
 @bot.event
 async def on_ready():
-    # Garante que as views persistentes funcionem após reiniciar
     bot.add_view(RegistroView())
     bot.add_view(SetsView())
     bot.add_view(ArquivoView())
-    print(f"✅ Sucesso! Bot logado como: {bot.user}")
+    print(f"✅ Bot Online como {bot.user}")
 
 # ================= SISTEMA ARQUIVO =================
 
@@ -60,7 +59,7 @@ class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
 
             await canal_log.send(embed=embed)
 
-        await interaction.response.send_message("Arquivo enviado com sucesso.", ephemeral=True)
+        await interaction.response.send_message("Arquivo enviado.", ephemeral=True)
 
 
 class ArquivoView(discord.ui.View):
@@ -70,20 +69,17 @@ class ArquivoView(discord.ui.View):
     @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="arquivo_btn")
     async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
         role = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
-
         if role and role not in interaction.user.roles:
-            await interaction.response.send_message("Você não possui o cargo necessário.", ephemeral=True)
+            await interaction.response.send_message("Você não possui permissão.", ephemeral=True)
             return
-
         await interaction.response.send_modal(ArquivoModal())
-
 
 @bot.command()
 async def arquivo(ctx):
-    embed = discord.Embed(title="Sistema de Arquivos", description="Clique no botão abaixo para registrar um aviso.")
+    embed = discord.Embed(title="Sistema de Arquivos")
     await ctx.send(embed=embed, view=ArquivoView())
 
-# ================= PAINEIS (VIEWS VAZIAS PARA REGISTRO) =================
+# ================= PAINEIS =================
 
 class RegistroView(discord.ui.View):
     def __init__(self):
@@ -103,16 +99,16 @@ async def painel_sets(ctx):
     embed = discord.Embed(title="Painel SETS")
     await ctx.send(embed=embed, view=SetsView())
 
-# ================= EXECUÇÃO COM DIAGNÓSTICO FINAL =================
+# ================= EXECUÇÃO =================
 
 if __name__ == "__main__":
     if TOKEN:
-        print("--- DIAGNÓSTICO DE INICIALIZAÇÃO ---")
-        print(f"Token utilizado: {TOKEN[:6]}...{TOKEN[-4:]}")
-        print(f"Total de caracteres: {len(TOKEN)}")
-        print("------------------------------------")
-        
+        print(f"--- DIAGNÓSTICO ---")
+        print(f"Token lido com sucesso (Início: {TOKEN[:6]}...)")
+        print(f"-------------------")
         try:
             bot.run(TOKEN)
-        except discord.errors.LoginFailure:
-            print("❌ ERRO FATAL: O Discord rejeitou este
+        except Exception as e:
+            print(f"❌ Erro ao ligar o bot: {e}")
+    else:
+        print("❌ ERRO: A variável 'TOKEN_BOT' não foi encontrada no Railway!")
