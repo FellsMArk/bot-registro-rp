@@ -3,6 +3,126 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
+# ================= CONFIGURAÇÃO =================
+TOKEN = os.getenv("TOKEN_BOT") or "MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o"
+
+# Cargos e Canais
+CARGO_CEO = "CEO"
+CARGO_CBM = "CBM-RJ"
+CARGO_SETS = "Sets"
+CANAL_LOG_ARQUIVO = "📃-log-avisos"
+CANAL_LOG_REGISTRO = "📑-log-registros"
+CANAL_LOG_SETS = "📄-log-painel"
+CATEGORIA_TICKETS = "📋 REGISTROS"
+
+# Inicialização com Intents Máximos
+intents = discord.Intents.all() 
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    # Mensagem clara no log do Railway
+    print("==========================================")
+    print(f"✅ BOT ESTÁ ON: {bot.user}")
+    print(f"📅 DATA: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    print("==========================================")
+    
+    # Faz os botões voltarem a funcionar após reinício
+    bot.add_view(ArquivoView())
+    bot.add_view(RegistroView())
+    bot.add_view(SetsView())
+
+# ================= COMPONENTES (BOTÕES E MODALS) =================
+
+class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
+    id_ref = discord.ui.TextInput(label="ID")
+    nome_cargo = discord.ui.TextInput(label="NOME/CARGO")
+    ocorrencia = discord.ui.TextInput(label="OCORRÊNCIA/AVISO", style=discord.TextStyle.paragraph)
+    obs = discord.ui.TextInput(label="OBSERVAÇÃO (Opcional)", required=False)
+    provas = discord.ui.TextInput(label="PROVAS (Opcional)", required=False)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        canal = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_ARQUIVO)
+        embed = discord.Embed(title="🚨 NOVO ARQUIVO", color=0x992d22, timestamp=datetime.now())
+        embed.add_field(name="🆔 ID", value=self.id_ref.value)
+        embed.add_field(name="👤 Nome/Cargo", value=self.nome_cargo.value)
+        embed.add_field(name="📝 Texto", value=f"```{self.ocorrencia.value}```", inline=False)
+        if canal: await canal.send(embed=embed)
+        await interaction.response.send_message("✅ Registrado!", ephemeral=True)
+
+class ArquivoView(discord.ui.View):
+    def __init__(self): super().__init__(timeout=None)
+    @discord.ui.button(label="Registrar Arquivo", style=discord.ButtonStyle.danger, custom_id="v5_arq")
+    async def cb(self, it: discord.Interaction, bt):
+        if discord.utils.get(it.user.roles, name=CARGO_CBM): await it.response.send_modal(ArquivoModal())
+        else: await it.response.send_message("❌ Sem permissão CBM-RJ.", ephemeral=True)
+
+class RegistroModal(discord.ui.Modal, title="Registro"):
+    id_cid = discord.ui.TextInput(label="Seu ID")
+    async def on_submit(self, it: discord.Interaction):
+        ceo = discord.utils.get(it.guild.roles, name=CARGO_CEO)
+        cat = discord.utils.get(it.guild.categories, name=CATEGORIA_TICKETS) or await it.guild.create_category(CATEGORIA_TICKETS)
+        ch = await it.guild.create_text_channel(f"registro-{it.user.name}", category=cat)
+        await ch.set_permissions(it.guild.default_role, view_channel=False)
+        await ch.set_permissions(ceo, view_channel=True)
+        await ch.send(content=f"{ceo.mention}", embed=discord.Embed(title="NOVO REGISTRO", description=f"Membro: {it.user.mention}\nID: {self.id_cid.value}"), view=AprovReg(it.user, self.id_cid.value))
+        await it.response.send_message("✅ Ticket Criado!", ephemeral=True)
+
+class AprovReg(discord.ui.View):
+    def __init__(self, u, c): super().__init__(timeout=None); self.u, self.c = u, c
+    @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.success)
+    async def sim(self, it: discord.Interaction, bt):
+        if not discord.utils.get(it.user.roles, name=CARGO_CEO): return
+        cargo = discord.utils.get(it.guild.roles, name=CARGO_CBM)
+        m = it.guild.get_member(self.u.id)
+        if m and cargo: await m.add_roles(cargo); await m.edit(nick=f"{self.c} | {m.name}")
+        log = discord.utils.get(it.guild.text_channels, name=CANAL_LOG_REGISTRO)
+        if log: await log.send(f"✅ {self.u.mention} aprovado por {it.user.mention}")
+        await it.channel.delete()
+
+class RegistroView(discord.ui.View):
+    def __init__(self): super().__init__(timeout=None)
+    @discord.ui.button(label="Iniciar Registro", style=discord.ButtonStyle.success, custom_id="v5_reg")
+    async def cb(self, it: discord.Interaction, bt): await it.response.send_modal(RegistroModal())
+
+class SetsModal(discord.ui.Modal, title="Pedido de Set"):
+    id_a = discord.ui.TextInput(label="ID Alvo"); mot = discord.ui.TextInput(label="Motivo")
+    async def on_submit(self, it: discord.Interaction):
+        cat = discord.utils.get(it.guild.categories, name=CATEGORIA_TICKETS)
+        ch = await it.guild.create_text_channel(f"set-{it.user.name}", category=cat)
+        await ch.send(embed=discord.Embed(title="PEDIDO DE SET", description=f"ID: {self.id_a.value}\nMotivo: {self.mot.value}"), view=AprovSet(it.user, self.id_a.value, self.mot.value))
+        await it.response.send_message("✅ Aberto!", ephemeral=True)
+
+class AprovSet(discord.ui.View):
+    def __init__(self, s, a, m): super().__init__(timeout=None); self.s, self.a, self.m = s, a, m
+    @discord.ui.button(label="Aceitar", style=discord.ButtonStyle.success)
+    async def ok(self, it: discord.Interaction, bt):
+        log = discord.utils.get(it.guild.text_channels, name=CANAL_LOG_SETS)
+        if log: await log.send(f"💎 SET ACEITO: ID {self.a} solicitado por {self.s.mention} | CEO: {it.user.mention}")
+        await it.channel.delete()
+    @discord.ui.button(label="Negar", style=discord.ButtonStyle.danger)
+    async def no(self, it: discord.Interaction, bt): await it.channel.delete()
+
+class SetsView(discord.ui.View):
+    def __init__(self): super().__init__(timeout=None)
+    @discord.ui.button(label="Solicitar Set", style=discord.ButtonStyle.primary, custom_id="v5_set")
+    async def cb(self, it: discord.Interaction, bt):
+        if discord.utils.get(it.user.roles, name=CARGO_SETS): await it.response.send_modal(SetsModal())
+        else: await it.response.send_message("❌ Sem cargo Sets.", ephemeral=True)
+
+# ================= COMANDOS =================
+
+@bot.command()
+async def setup(ctx):
+    await ctx.send(embed=discord.Embed(title="📂 ARQUIVO", color=0x992d22), view=ArquivoView())
+    await ctx.send(embed=discord.Embed(title="📝 REGISTRO", color=0x2ecc71), view=RegistroView())
+    await ctx.send(embed=discord.Embed(title="💎 SETS", color=0x3498db), view=SetsView())
+
+bot.run(TOKEN)import discord
+from discord.ext import commands
+import os
+from datetime import datetime
+
 # ================= CONFIGURAÇÃO TÉCNICA =================
 # O TOKEN deve estar nas variáveis de ambiente do Railway como TOKEN_BOT
 TOKEN = os.getenv("TOKEN_BOT") or "MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o"
