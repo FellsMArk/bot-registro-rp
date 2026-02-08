@@ -3,35 +3,31 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-# BUSCA PELA NOVA VARIÁVEL QUE VOCÊ CRIOU NA IMAGEM
+# Lógica para pegar o token da variável TOKEN_BOT que está no seu Railway
 TOKEN_RAW = os.getenv("TOKEN_BOT")
 TOKEN = TOKEN_RAW.strip() if TOKEN_RAW else None
 
-CARGO_STAFF = "CEO"
+# Configurações de Cargos e Canais
 CARGO_REGISTRADO = "CMB-RJ"
-CARGO_SETS = "Sets"
-
-CANAL_LOG_REGISTRO = "📑-log-registros"
-CANAL_LOG_SETS = "📄-log-painel"
 CANAL_LOG_ARQUIVO = "📃-log-avisos"
 
-CATEGORIA_REGISTRO = "📋 REGISTROS"
-
+# Intents necessários (já ativados no seu portal do desenvolvedor)
 INTENTS = discord.Intents.default()
 INTENTS.members = True
 INTENTS.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=INTENTS)
 
-# ================= READY =================
+# ================= EVENTO READY =================
 @bot.event
 async def on_ready():
-    bot.add_view(RegistroView())
-    bot.add_view(SetsView())
+    # Carrega as views para que os botões funcionem mesmo após o bot reiniciar
     bot.add_view(ArquivoView())
-    print(f"✅ Bot Online como {bot.user}")
+    print(f"✅ Bot Online: {bot.user}")
+    if TOKEN:
+        print(f"✅ Token carregado com sucesso (Início: {TOKEN[:6]}...)")
 
-# ================= SISTEMA ARQUIVO =================
+# ================= SISTEMA DE ARQUIVO (MODAL) =================
 
 class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
     id_ref = discord.ui.TextInput(label="ID")
@@ -47,68 +43,53 @@ class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
 
         if canal_log:
             embed = discord.Embed(title="Novo Aviso Registrado", color=discord.Color.blue())
-            embed.add_field(name="Staff", value=interaction.user.mention)
-            embed.add_field(name="ID", value=self.id_ref.value)
-            embed.add_field(name="Nome", value=self.nome.value)
-            embed.add_field(name="Cargo", value=self.cargo.value)
-            embed.add_field(name="Ocorrência", value=self.ocorrencia.value)
-            embed.add_field(name="Aviso", value=self.aviso.value)
-            embed.add_field(name="Observação", value=self.obs.value or "Nenhuma")
-            embed.add_field(name="Provas", value=self.provas.value or "Nenhuma")
-            embed.set_footer(text=datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+            embed.add_field(name="Staff", value=interaction.user.mention, inline=True)
+            embed.add_field(name="ID", value=self.id_ref.value, inline=True)
+            embed.add_field(name="Nome", value=self.nome.value, inline=True)
+            embed.add_field(name="Cargo", value=self.cargo.value, inline=True)
+            embed.add_field(name="Ocorrência", value=self.ocorrencia.value, inline=False)
+            embed.add_field(name="Aviso", value=self.aviso.value, inline=False)
+            embed.add_field(name="Observação", value=self.obs.value or "Nenhuma", inline=False)
+            embed.add_field(name="Provas", value=self.provas.value or "Nenhuma", inline=False)
+            embed.set_footer(text=f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
 
             await canal_log.send(embed=embed)
-
-        await interaction.response.send_message("Arquivo enviado.", ephemeral=True)
-
+            await interaction.response.send_message("✅ Arquivo enviado com sucesso para a log.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ Erro: Canal '{CANAL_LOG_ARQUIVO}' não encontrado.", ephemeral=True)
 
 class ArquivoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="arquivo_btn")
-    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="btn_arquivo_fixo")
+    async def abrir_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Verifica se o usuário tem o cargo necessário
         role = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
         if role and role not in interaction.user.roles:
-            await interaction.response.send_message("Você não possui permissão.", ephemeral=True)
+            await interaction.response.send_message("❌ Você não tem permissão para usar este sistema.", ephemeral=True)
             return
+        
         await interaction.response.send_modal(ArquivoModal())
 
+# ================= COMANDO PARA ENVIAR O PAINEL =================
+
 @bot.command()
-async def arquivo(ctx):
-    embed = discord.Embed(title="Sistema de Arquivos")
+async def setup_arquivo(ctx):
+    embed = discord.Embed(
+        title="📂 Sistema de Arquivamento",
+        description="Clique no botão abaixo para abrir o formulário de registro.",
+        color=discord.Color.gold()
+    )
     await ctx.send(embed=embed, view=ArquivoView())
-
-# ================= PAINEIS =================
-
-class RegistroView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-class SetsView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-@bot.command()
-async def painel_registro(ctx):
-    embed = discord.Embed(title="Painel de Registro")
-    await ctx.send(embed=embed, view=RegistroView())
-
-@bot.command()
-async def painel_sets(ctx):
-    embed = discord.Embed(title="Painel SETS")
-    await ctx.send(embed=embed, view=SetsView())
 
 # ================= EXECUÇÃO =================
 
 if __name__ == "__main__":
     if TOKEN:
-        print(f"--- DIAGNÓSTICO ---")
-        print(f"Token lido com sucesso (Início: {TOKEN[:6]}...)")
-        print(f"-------------------")
         try:
             bot.run(TOKEN)
         except Exception as e:
-            print(f"❌ Erro ao ligar o bot: {e}")
+            print(f"❌ Erro ao iniciar o bot: {e}")
     else:
-        print("❌ ERRO: A variável 'TOKEN_BOT' não foi encontrada no Railway!")
+        print("❌ ERRO CRÍTICO: Variável 'TOKEN_BOT' não encontrada no Railway.")
