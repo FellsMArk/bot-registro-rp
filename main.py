@@ -7,6 +7,8 @@ from discord import app_commands
 TOKEN = os.getenv("TOKEN")
 LOG_CHANNEL_ID = os.getenv("LOG_CHANNEL_ID")
 
+print("ENV VARS:", list(os.environ.keys()))
+
 if not TOKEN:
     raise RuntimeError("TOKEN não encontrado nas variáveis de ambiente")
 
