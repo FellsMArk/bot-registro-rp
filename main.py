@@ -3,74 +3,101 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-# Lógica de conexão com o Railway
 TOKEN = os.getenv("TOKEN_BOT")
 
-# Configurações do Bot
+CARGO_STAFF = "CEO"
+CARGO_REGISTRADO = "CMB-RJ"
+CARGO_SETS = "Sets"
+
+CANAL_LOG_REGISTRO = "📑-log-registros"
+CANAL_LOG_SETS = "📄-log-painel"
+CANAL_LOG_ARQUIVO = "📃-log-avisos"
+
+CATEGORIA_REGISTRO = "📋 REGISTROS"
+
 INTENTS = discord.Intents.default()
 INTENTS.members = True
 INTENTS.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=INTENTS)
 
-# --- SISTEMA DE LOGS ---
-CANAL_LOG_ARQUIVO = "📃-log-avisos"
-CARGO_REGISTRADO = "CMB-RJ"
-
+# ================= READY =================
 @bot.event
 async def on_ready():
-    # Isso garante que os botões voltem a funcionar se o bot cair e voltar
+    bot.add_view(RegistroView())
+    bot.add_view(SetsView())
     bot.add_view(ArquivoView())
-    print(f"✅ BOT ONLINE: {bot.user}")
-    print(f"📡 Servidores: {len(bot.guilds)}")
+    print(f"Online como {bot.user}")
 
-# --- INTERFACE DO FORMULÁRIO ---
+# ================= SISTEMA ARQUIVO =================
+
 class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
-    id_ref = discord.ui.TextInput(label="ID")
+    id = discord.ui.TextInput(label="ID")
     nome = discord.ui.TextInput(label="Nome")
     cargo = discord.ui.TextInput(label="Cargo")
-    ocorrencia = discord.ui.TextInput(label="Ocorrência", style=discord.TextStyle.paragraph)
+    ocorrencia = discord.ui.TextInput(label="Ocorrência")
     aviso = discord.ui.TextInput(label="Aviso")
     obs = discord.ui.TextInput(label="Observação", required=False)
-    provas = discord.ui.TextInput(label="Provas (Link)", required=False)
+    provas = discord.ui.TextInput(label="Provas", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
         canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_ARQUIVO)
-        
-        if not canal_log:
-            return await interaction.response.send_message(f"Erro: Canal {CANAL_LOG_ARQUIVO} não encontrado!", ephemeral=True)
 
-        embed = discord.Embed(title="📝 Novo Registro", color=discord.Color.blue())
-        embed.add_field(name="Staff", value=interaction.user.mention)
-        embed.add_field(name="ID/Nome", value=f"{self.id_ref.value} - {self.nome.value}")
-        embed.add_field(name="Cargo", value=self.cargo.value)
-        embed.add_field(name="Ocorrência", value=self.ocorrencia.value, inline=False)
-        embed.add_field(name="Aviso", value=self.aviso.value, inline=False)
-        embed.set_footer(text=f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+        if canal_log:
+            embed = discord.Embed(title="Novo Aviso Registrado", color=discord.Color.blue())
+            embed.add_field(name="Staff", value=interaction.user.mention)
+            embed.add_field(name="ID", value=self.id.value)
+            embed.add_field(name="Nome", value=self.nome.value)
+            embed.add_field(name="Cargo", value=self.cargo.value)
+            embed.add_field(name="Ocorrência", value=self.ocorrencia.value)
+            embed.add_field(name="Aviso", value=self.aviso.value)
+            embed.add_field(name="Observação", value=self.obs.value or "Nenhuma")
+            embed.add_field(name="Provas", value=self.provas.value or "Nenhuma")
+            embed.set_footer(text=datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
-        await canal_log.send(embed=embed)
-        await interaction.response.send_message("✅ Registro enviado com sucesso!", ephemeral=True)
+            await canal_log.send(embed=embed)
+
+        await interaction.response.send_message("Arquivo enviado.", ephemeral=True)
+
 
 class ArquivoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="btn_arq_fixo")
-    async def abrir_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="arquivo_btn")
+    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+        role = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
+
+        if role not in interaction.user.roles:
+            await interaction.response.send_message("Você não possui permissão.", ephemeral=True)
+            return
+
         await interaction.response.send_modal(ArquivoModal())
 
-# --- COMANDO DE SETUP ---
+
 @bot.command()
-async def setup(ctx):
-    embed = discord.Embed(title="Painel de Controle", description="Clique abaixo para abrir o formulário.")
+async def arquivo(ctx):
+    embed = discord.Embed(title="Sistema de Arquivos")
     await ctx.send(embed=embed, view=ArquivoView())
 
-# --- INICIALIZAÇÃO ---
-if __name__ == "__main__":
-    if TOKEN:
-        try:
-            bot.run(TOKEN)
-        except Exception as e:
-            print(f"❌ Erro de Login: {e}")
-    else:
-        print("❌ Variável TOKEN_BOT não encontrada!")
+# ================= PAINEIS =================
+
+class RegistroView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+class SetsView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+@bot.command()
+async def painel_registro(ctx):
+    embed = discord.Embed(title="Painel de Registro")
+    await ctx.send(embed=embed, view=RegistroView())
+
+@bot.command()
+async def painel_sets(ctx):
+    embed = discord.Embed(title="Painel SETS")
+    await ctx.send(embed=embed, view=SetsView())
+
+bot.run(TOKEN_BOT)
