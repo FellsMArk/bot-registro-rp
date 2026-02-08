@@ -3,7 +3,7 @@ from discord.ext import commands
 import json
 import os
 
-TOKEN = "SEU_TOKEN_AQUI"
+TOKEN = "MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U"
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
@@ -221,4 +221,4 @@ async def sets(interaction: discord.Interaction):
     await interaction.response.send_modal(SetsModal())
 
 
-bot.run(TOKEN)
+bot.run("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U")
