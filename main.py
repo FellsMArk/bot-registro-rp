@@ -206,9 +206,9 @@ async def painel_registro(ctx):
     embed = discord.Embed(title="Painel de Registro")
     await ctx.send(embed=embed, view=RegistroView())
 
-@bot.command("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
+@bot.command()
 async def painel_sets(ctx):
     embed = discord.Embed(title="Painel SETS")
     await ctx.send(embed=embed, view=SetsView())
 
-bot.run(TOKEN)
+bot.run("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
