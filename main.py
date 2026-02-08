@@ -1,10 +1,10 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
 import os
+from datetime import datetime
 
-TOKEN = os.getenv("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
+TOKEN = os.getenv("TOKEN")
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
@@ -22,7 +22,6 @@ INTENTS.message_content = True
 bot = commands.Bot(command_prefix="!", intents=INTENTS)
 
 # ================= READY =================
-
 @bot.event
 async def on_ready():
     await bot.tree.sync()
@@ -86,7 +85,7 @@ class AprovacaoRegistro(discord.ui.View):
 
         canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REGISTRO)
         if canal_log:
-            await canal_log.send(f"Registro aprovado: {membro.mention}")
+            await canal_log.send(f"Registro aprovado: {membro.mention} | Staff: {interaction.user.mention}")
 
         await interaction.channel.delete()
 
@@ -94,7 +93,7 @@ class AprovacaoRegistro(discord.ui.View):
     async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
         canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REGISTRO)
         if canal_log:
-            await canal_log.send(f"Registro negado: {self.usuario.mention}")
+            await canal_log.send(f"Registro negado: {self.usuario.mention} | Staff: {interaction.user.mention}")
 
         await interaction.channel.delete()
 
@@ -149,17 +148,37 @@ class AprovacaoSets(discord.ui.View):
 
     @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.success)
     async def aprovar(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        data = datetime.now().strftime("%d/%m/%Y %H:%M")
+
         canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
         if canal_log:
-            await canal_log.send(f"SETS aprovado\nSolicitante: {self.solicitante.mention}\nID: {self.uid}\nMotivo: {self.motivo}")
+            await canal_log.send(
+                f"SETS aprovado\n"
+                f"Solicitante: {self.solicitante.mention}\n"
+                f"ID: {self.uid}\n"
+                f"Motivo: {self.motivo}\n"
+                f"Staff: {interaction.user.mention}\n"
+                f"Data: {data}"
+            )
 
         await interaction.channel.delete()
 
     @discord.ui.button(label="Negar", style=discord.ButtonStyle.danger)
     async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        data = datetime.now().strftime("%d/%m/%Y %H:%M")
+
         canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
         if canal_log:
-            await canal_log.send(f"SETS negado\nSolicitante: {self.solicitante.mention}\nID: {self.uid}\nMotivo: {self.motivo}")
+            await canal_log.send(
+                f"SETS negado\n"
+                f"Solicitante: {self.solicitante.mention}\n"
+                f"ID: {self.uid}\n"
+                f"Motivo: {self.motivo}\n"
+                f"Staff: {interaction.user.mention}\n"
+                f"Data: {data}"
+            )
 
         await interaction.channel.delete()
 
@@ -178,4 +197,4 @@ async def sets(interaction: discord.Interaction):
     embed = discord.Embed(title="Painel SETS")
     await interaction.response.send_message(embed=embed, view=SetsView(), ephemeral=True)
 
-bot.run("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
+bot.run(TOKEN)
