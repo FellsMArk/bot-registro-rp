@@ -5,7 +5,7 @@ from discord import app_commands
 
 # ================= VARIÁVEIS DE AMBIENTE =================
 TOKEN = os.getenv("TOKEN")
-LOG_CHANNEL_ID = os.getevn("LOG_CHANNEL_ID")
+LOG_CHANNEL_ID = os.getenv("LOG_CHANNEL_ID")
 LOG_CHANNEL_ID = int(LOG_CHANNEL_ID)
 
 if not TOKEN:
