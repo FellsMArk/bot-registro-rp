@@ -153,4 +153,4 @@ async def painel(interaction: discord.Interaction):
     await interaction.response.send_message("Painel criado.", ephemeral=True)
 
 
-bot.run(MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U)
+bot.run("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.G957HJ.rtlnjq1rewaSc7Hx_myiBhAE8TxTJEO1dnQi6U")
