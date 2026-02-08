@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 # PEGA O TOKEN E LIMPA ESPAÇOS/QUEBRAS DE LINHA AUTOMATICAMENTE
-TOKEN_RAW = os.getenv("TOKEN")
+TOKEN_RAW = os.getenv("TOKEN_BOT")
 TOKEN = TOKEN_RAW.strip() if TOKEN_RAW else None
 
 CARGO_STAFF = "CEO"
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         print("------------------------------")
         
         try:
-            bot.run(TOKEN)
+            bot.run(TOKEN_BOT)
         except discord.errors.LoginFailure:
             print("❌ O Discord recusou o login. Verifique se o token no Railway bate com o Início acima.")
     else:
