@@ -1,16 +1,18 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 import os
 from datetime import datetime
 
-TOKEN = os.getenv("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
+TOKEN = os.getenv("TOKEN")
 
 CARGO_STAFF = "CEO"
 CARGO_REGISTRADO = "CMB-RJ"
 CARGO_SETS = "Sets"
+
 CANAL_LOG_REGISTRO = "📑-log-registros"
 CANAL_LOG_SETS = "📄-log-painel"
+CANAL_LOG_ARQUIVO = "📃-log-avisos"
+
 CATEGORIA_REGISTRO = "📋 REGISTROS"
 
 INTENTS = discord.Intents.default()
@@ -22,184 +24,71 @@ bot = commands.Bot(command_prefix="!", intents=INTENTS)
 # ================= READY =================
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     bot.add_view(RegistroView())
     bot.add_view(SetsView())
+    bot.add_view(ArquivoView())
     print(f"Online como {bot.user}")
 
-# ================= REGISTRO =================
+# ================= SISTEMA ARQUIVO =================
 
-class RegistroModal(discord.ui.Modal, title="Registro RP"):
-    id_cidade = discord.ui.TextInput(label="ID da cidade")
+class ArquivoModal(discord.ui.Modal, title="Registro de Arquivo"):
+    id = discord.ui.TextInput(label="ID")
+    nome = discord.ui.TextInput(label="Nome")
+    cargo = discord.ui.TextInput(label="Cargo")
+    ocorrencia = discord.ui.TextInput(label="Ocorrência")
+    aviso = discord.ui.TextInput(label="Aviso")
+    obs = discord.ui.TextInput(label="Observação", required=False)
+    provas = discord.ui.TextInput(label="Provas", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        staff_role = discord.utils.get(guild.roles, name=CARGO_STAFF)
-        categoria = discord.utils.get(guild.categories, name=CATEGORIA_REGISTRO)
+        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_ARQUIVO)
 
-        if not categoria:
-            categoria = await guild.create_category(CATEGORIA_REGISTRO)
+        if canal_log:
+            embed = discord.Embed(title="Novo Aviso Registrado", color=discord.Color.blue())
+            embed.add_field(name="Staff", value=interaction.user.mention)
+            embed.add_field(name="ID", value=self.id.value)
+            embed.add_field(name="Nome", value=self.nome.value)
+            embed.add_field(name="Cargo", value=self.cargo.value)
+            embed.add_field(name="Ocorrência", value=self.ocorrencia.value)
+            embed.add_field(name="Aviso", value=self.aviso.value)
+            embed.add_field(name="Observação", value=self.obs.value or "Nenhuma")
+            embed.add_field(name="Provas", value=self.provas.value or "Nenhuma")
+            embed.set_footer(text=datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            interaction.user: discord.PermissionOverwrite(view_channel=False),
-            staff_role: discord.PermissionOverwrite(view_channel=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True)
-        }
+            await canal_log.send(embed=embed)
 
-        canal = await guild.create_text_channel(
-            f"registro-{interaction.user.name}",
-            category=categoria,
-            overwrites=overwrites
-        )
-
-        embed = discord.Embed(title="Novo Registro", color=discord.Color.orange())
-        embed.add_field(name="Usuário", value=interaction.user.mention)
-        embed.add_field(name="Cidade", value=self.id_cidade.value)
-
-        await canal.send(embed=embed, view=AprovacaoRegistro(interaction.user, self.id_cidade.value))
-        await interaction.response.send_message("Registro enviado.", ephemeral=True)
+        await interaction.response.send_message("Arquivo enviado.", ephemeral=True)
 
 
-class RegistroView(discord.ui.View):
+class ArquivoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Iniciar Registro", style=discord.ButtonStyle.green, custom_id="registro_btn")
-    async def registrar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(RegistroModal())
-
-
-class AprovacaoRegistro(discord.ui.View):
-    def __init__(self, usuario, cidade):
-        super().__init__(timeout=None)
-        self.usuario = usuario
-        self.cidade = cidade
-
-    async def interaction_check(self, interaction):
-        role = discord.utils.get(interaction.guild.roles, name=CARGO_STAFF)
-        return role in interaction.user.roles
-
-    @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.success)
-    async def aprovar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        membro = interaction.guild.get_member(self.usuario.id)
-        cargo = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
-
-        await membro.add_roles(cargo)
-        await membro.edit(nick=f"{self.cidade} | {membro.name}")
-
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REGISTRO)
-
-        if canal_log:
-            await canal_log.send(
-                f"Registro aprovado: {membro.mention}\n"
-                f"Staff: {interaction.user.mention}\n"
-                f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
-            )
-
-        await interaction.channel.delete()
-
-    @discord.ui.button(label="Negar", style=discord.ButtonStyle.danger)
-    async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_REGISTRO)
-
-        if canal_log:
-            await canal_log.send(
-                f"Registro negado: {self.usuario.mention}\n"
-                f"Staff: {interaction.user.mention}\n"
-                f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
-            )
-
-        await interaction.channel.delete()
-
-# ================= SETS =================
-
-class SetsModal(discord.ui.Modal, title="Solicitação Sets"):
-    user_id = discord.ui.TextInput(label="ID do usuário")
-    motivo = discord.ui.TextInput(label="Motivo", style=discord.TextStyle.paragraph)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        staff_role = discord.utils.get(guild.roles, name=CARGO_STAFF)
-        categoria = discord.utils.get(guild.categories, name=CATEGORIA_REGISTRO)
-
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            interaction.user: discord.PermissionOverwrite(view_channel=False),
-            staff_role: discord.PermissionOverwrite(view_channel=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True)
-        }
-
-        canal = await guild.create_text_channel(
-            f"sets-{interaction.user.name}",
-            category=categoria,
-            overwrites=overwrites
-        )
-
-        embed = discord.Embed(title="Solicitação SETS", color=discord.Color.orange())
-        embed.add_field(name="Solicitante", value=interaction.user.mention)
-        embed.add_field(name="ID", value=self.user_id.value)
-        embed.add_field(name="Motivo", value=self.motivo.value)
-
-        await canal.send(embed=embed, view=AprovacaoSets(interaction.user, self.user_id.value, self.motivo.value))
-        await interaction.response.send_message("Solicitação enviada.", ephemeral=True)
-
-
-class AprovacaoSets(discord.ui.View):
-    def __init__(self, solicitante, uid, motivo):
-        super().__init__(timeout=None)
-        self.solicitante = solicitante
-        self.uid = uid
-        self.motivo = motivo
-
-    async def interaction_check(self, interaction):
-        role = discord.utils.get(interaction.guild.roles, name=CARGO_STAFF)
-        return role in interaction.user.roles
-
-    @discord.ui.button(label="Aprovar", style=discord.ButtonStyle.success)
-    async def aprovar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
-
-        if canal_log:
-            await canal_log.send(
-                f"SETS aprovado\nSolicitante: {self.solicitante.mention}\n"
-                f"ID: {self.uid}\nMotivo: {self.motivo}\n"
-                f"Staff: {interaction.user.mention}\n"
-                f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
-            )
-
-        await interaction.channel.delete()
-
-    @discord.ui.button(label="Negar", style=discord.ButtonStyle.danger)
-    async def negar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        canal_log = discord.utils.get(interaction.guild.text_channels, name=CANAL_LOG_SETS)
-
-        if canal_log:
-            await canal_log.send(
-                f"SETS negado\nSolicitante: {self.solicitante.mention}\n"
-                f"ID: {self.uid}\nMotivo: {self.motivo}\n"
-                f"Staff: {interaction.user.mention}\n"
-                f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
-            )
-
-        await interaction.channel.delete()
-
-
-class SetsView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="Abrir Solicitação", style=discord.ButtonStyle.green, custom_id="sets_btn")
+    @discord.ui.button(label="Criar Arquivo", style=discord.ButtonStyle.blurple, custom_id="arquivo_btn")
     async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name=CARGO_SETS)
+        role = discord.utils.get(interaction.guild.roles, name=CARGO_REGISTRADO)
 
         if role not in interaction.user.roles:
             await interaction.response.send_message("Você não possui permissão.", ephemeral=True)
             return
 
-        await interaction.response.send_modal(SetsModal())
+        await interaction.response.send_modal(ArquivoModal())
 
-# ================= COMANDOS PAINEL =================
+
+@bot.command()
+async def arquivo(ctx):
+    embed = discord.Embed(title="Sistema de Arquivos")
+    await ctx.send(embed=embed, view=ArquivoView())
+
+# ================= PAINEIS =================
+
+class RegistroView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+class SetsView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
 
 @bot.command()
 async def painel_registro(ctx):
@@ -211,4 +100,4 @@ async def painel_sets(ctx):
     embed = discord.Embed(title="Painel SETS")
     await ctx.send(embed=embed, view=SetsView())
 
-bot.run("MTQ2OTI5NTA5Njg3MTc4MDQ2NQ.GHwnfC.COl0LdJ0bCuH2xLT_4WmPDK2nHHO9uMa0ytR1o")
+bot.run(TOKEN)
